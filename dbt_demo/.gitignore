@@ -1,0 +1,5 @@
+
+target/
+dbt_packages/
+logs/
+DBT_DEMO/demo_pyenv/*
