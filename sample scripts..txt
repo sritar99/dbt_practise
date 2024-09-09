@@ -1,0 +1,83 @@
+Sample scrtipts to start with
+
+-------------------------------------------------------------------------------------------
+File: dbt_project.yml 
+To have the models / specific table with different materialisations(table/view): 
+models: 
+  practise: 
+    transform: 
+      +materialized: table 
+    stage: 
+      +materialized: view 
+
+-------------------------------------------------------------------------------------------
+To map a path folder to the project project folder
+File: dbt_project.yml 
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+example-paths: ["examplefoldername"]
+
+-------------------------------------------------------------------------------------------
+Simple CTE script
+
+WITH raw_reviews AS(
+ SELECT
+ *
+ FROM AIRBNB.RAW.RAW_REVIEWS
+)
+
+SELECT
+ listing_id,
+ date AS review_date,
+ reviewer_name,
+ comments AS review_text,
+ sentiment AS review_sentiment
+FROM
+ raw_reviews
+
+-------------------------------------------------------------------------------------------
+To add more absraction about the datasource details such as "AIRBNB.RAW.RAW_REVIEWS" everytime
+we can define the source details into the variables and can be used wherever needed
+
+File: Sources.yml
+
+version: 2
+sources:
+  - name: airbnb
+    schema: raw
+    tables:
+      - name: listings
+        identifier: raw_listings
+      - name: hosts
+        identifier: raw_hosts
+      - name: reviews
+        identifier: raw_reviews
+        loaded_at_field: date
+        freshness:
+          warn_after: {count: 1, period: hour}
+          error_after: {count: 24, period: hour}
+
+
+Now instead of mentioning the data source details each time while querying we can use this: {{source('airbnb','reviews')}}
+WITH raw_reviews AS(
+ SELECT
+ *
+ FROM
+ {{source('airbnb','reviews')}}
+)
+
+SELECT
+ listing_id,
+ date AS review_date,
+ reviewer_name,
+ comments AS review_text,
+ sentiment AS review_sentiment
+FROM
+ raw_reviews
+
+-----------------------------------------------------------------------------------------------------------------------------------
