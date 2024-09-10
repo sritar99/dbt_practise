@@ -81,3 +81,69 @@ FROM
  raw_reviews
 
 -----------------------------------------------------------------------------------------------------------------------------------
+Writing Incremental Model:
+
+{{
+    config(
+        materialized='incremental',
+        on_schema_change='fail'
+    )
+}}
+
+WITH src_reviews as(
+    select * from {{ref('src_reviews')}}
+)
+
+select * from src_reviews where review_text is not null
+{% if is_incremental() %}
+and review_date>(select max(review_date) from {{this}})
+{% endif %}
+
+--------------
+Insights:{{ref('src_reviews')}} helps in referring the model , {{this}} helps in referring to the current data which is existing in the DB for this model 
+-----------------------------------------------------------------------------------------------------------------------------------
+Using multiple models to build a model:
+
+With 
+
+dim_hosts_cleansed as(
+    select * from {{ref('dim_hosts_cleansed')}}
+),
+dim_listings_cleansed as(
+    select * from {{ref('dim_listings_cleansed')}}
+)
+
+SELECT 
+ dim_listings_cleansed.listing_id,
+ dim_listings_cleansed.listing_name,
+ dim_listings_cleansed.room_type,
+ dim_listings_cleansed.minimum_nights,
+ dim_listings_cleansed.price,
+ dim_listings_cleansed.host_id,
+ dim_hosts_cleansed.host_name,
+ dim_hosts_cleansed.is_superhost as host_is_superhost,
+ dim_listings_cleansed.created_at,
+ GREATEST(dim_listings_cleansed.updated_at, dim_hosts_cleansed.updated_at) as updated_at
+FROM dim_listings_cleansed
+LEFT JOIN dim_hosts_cleansed ON (dim_hosts_cleansed.host_id = dim_listings_cleansed.host_id)
+-----------------------------------------------------------------------------------------------------------------------------------
+To Print a statement in the execution log:
+{{log("Print statement")}}
+-----------------------------------------------------------------------------------------------------------------------------------
+Writing a function:
+{% macro function_name(param1,param2)%}
+bussiness logic
+{% endmacro %}
+
+see below example about a function which checks whether the column value is null or not:
+
+{% macro no_null_values(model) %}
+select * from {{model}} where
+{% for i in adapter.get_columns_in_relation(model) -%}
+     {{i.column}} is null or
+{% endfor %}
+FALSE
+{% endmacro %}
+
+-----------------------------------------------------------------------------------------------------------------------------------
+
